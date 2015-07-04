@@ -1,5 +1,6 @@
 var notify = require("../../node_modules/grunt-notify/lib/notify-lib"),
-   tcpPortUsed = require("tcp-port-used");
+   tcpPortUsed = require("tcp-port-used"),
+   selenium = require('selenium-standalone');
 
 module.exports = function(grunt) {
 
@@ -9,9 +10,20 @@ module.exports = function(grunt) {
 
    // Register a test task that uses Intern_local for development purposes (no server restarts)
    grunt.registerTask("dt", ["intern:local"]);
+   
+   grunt.registerTask('startSelenium', 'Start selenium', function()
+       {
+           var done = this.async();
+           selenium.install(function(){
+               selenium.start(function(err, child){
+                   done();
+               });
+           });
+       }
+   );
 
    // Register test tasks for local/vagrant/SauceLabs/grid respectively
-   grunt.registerTask("test_local", ["startUnitTestApp", "waitServer", "clean:testScreenshots", "generate-require-everything", "intern:local"]);
+   grunt.registerTask("test_local", ['startSelenium', "startUnitTestApp", "waitServer", "clean:testScreenshots", "generate-require-everything", "intern:local", 'shell:stopTestApp']);
    grunt.registerTask("test", ["startUnitTestApp", "waitServer", "clean:testScreenshots", "generate-require-everything", "intern:dev"]);
    grunt.registerTask("test_sl", ["startUnitTestApp", "waitServer", "clean:testScreenshots", "generate-require-everything", "intern:sl"]);
    grunt.registerTask("test_grid", ["waitServer", "clean:testScreenshots", "generate-require-everything", "intern:grid"]);
