@@ -94,10 +94,7 @@ model.jsonModel = {
             useHash: true,
             hashVarsForUpdate: [
                "var1",
-               "var2",
-               "simple",
-               "complex.type",
-               "complex.param"
+               "var2"
             ],
             hashVarsForUpdateRequired: [
                "var1",

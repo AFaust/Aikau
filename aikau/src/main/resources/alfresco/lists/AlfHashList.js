@@ -303,7 +303,7 @@ define(["dojo/_base/declare",
                         filterValues[propKey] = value.getTime();
                     } else if (value instanceof Object) {
                         for (prop in value) {
-                            if(value.hasOwnProperty(prop)) {
+                            if (value.hasOwnProperty(prop)) {
                                 processFilterValue(value[prop], propKey + '.' + prop);
                             }
                         }
@@ -314,9 +314,21 @@ define(["dojo/_base/declare",
                 }
             };
             
-            array.forEach(this.dataFilters, function(dataFilter){
+            array.forEach(this.dataFilters, function(dataFilter) {
                processFilterValue(dataFilter.value, dataFilter.name);
             });
+            
+            // make sure filter hash variables do trigger an update
+            // relevant only if hashVarsForUpdate isn't empty
+            if (Array.isArray(this.hashVarsForUpdate) && this.hashVarsForUpdate.length > 0) {
+                array.forEach(Object.keys(filterValues), function(hashVar) {
+                    if (array.indexOf(this.hashVarsForUpdate, hashVar) === -1)
+                    {
+                        this.hashVarsForUpdate.push(hashVar);
+                    }
+                }, this);
+            }
+            
             hashUtils.updateHash(filterValues);
          } else {
             this.clearViews();
