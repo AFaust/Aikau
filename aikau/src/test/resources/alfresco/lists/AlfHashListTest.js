@@ -106,7 +106,42 @@ define(["intern!object",
             })
          .end();
       },
-
+      
+      "Register simple filter that will trigger reload": function() {
+         return browser.findByCssSelector("#SET_FILTER1_label")
+           .click()
+         .end()
+         // reload was triggered
+         .findByCssSelector(TestCommon.topicSelector("ALF_RETRIEVE_DOCUMENTS_REQUEST", "publish", "last"))
+         .end()
+         // hash was updated with filter value
+         .findAllByCssSelector(TestCommon.pubDataCssSelector("ALF_HASH_CHANGED", "simple", "simpleFilterValue"))
+         .then(function(elements) {
+            assert.lengthOf(elements, 1, "The hash was not updated correctly");
+         })
+         .end();
+      },
+      
+      "Register complex filter that will trigger reload": function() {
+          return browser.findByCssSelector("#SET_FILTER2_label")
+            .click()
+          .end()
+          // reload was triggered
+          .findByCssSelector(TestCommon.topicSelector("ALF_RETRIEVE_DOCUMENTS_REQUEST", "publish", "last"))
+          .end()
+          // hash was updated with filter value
+          .findAllByCssSelector(TestCommon.pubDataCssSelector("ALF_HASH_CHANGED", "complex.type", "complexFilterType"))
+          .then(function(elements) {
+             assert.lengthOf(elements, 1, "The hash was not updated correctly - type missing");
+          })
+          .end()
+          .findAllByCssSelector(TestCommon.pubDataCssSelector("ALF_HASH_CHANGED", "complex.param", "complexFilterParamValue"))
+          .then(function(elements) {
+             assert.lengthOf(elements, 1, "The hash was not updated correctly - param missing");
+          })
+          .end();
+      },
+      
       "Post Coverage Results": function() {
          TestCommon.alfPostCoverageResults(this, browser);
       }

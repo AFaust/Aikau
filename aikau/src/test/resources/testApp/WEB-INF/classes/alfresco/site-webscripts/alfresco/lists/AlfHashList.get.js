@@ -61,13 +61,43 @@ model.jsonModel = {
          }
       },
       {
+          id: "SET_FILTER1",
+          name: "alfresco/buttons/AlfButton",
+          config: {
+             label: "Register simple filter (should trigger load)",
+             publishTopic: "SIMPLE_FILTER",
+             publishPayload: {
+                name: "simple",
+                value: "simpleFilterValue"
+             }
+          }
+      },
+      {
+          id: "SET_FILTER2",
+          name: "alfresco/buttons/AlfButton",
+          config: {
+             label: "Register complex filter (should trigger load)",
+             publishTopic: "COMPLEX_FILTER",
+             publishPayload: {
+                name: "complex",
+                value: {
+                    type : "complexFilterType",
+                    param : "complexFilterParamValue"
+                }
+             }
+          }
+      },
+      {
          id: "HASHLIST1",
          name: "alfresco/lists/AlfHashList",
          config: {
             useHash: true,
             hashVarsForUpdate: [
                "var1",
-               "var2"
+               "var2",
+               "simple",
+               "complex.type",
+               "complex.param"
             ],
             hashVarsForUpdateRequired: [
                "var1",
@@ -80,6 +110,7 @@ model.jsonModel = {
                }
             ],
             mapHashVarsToPayload: true,
+            filteringTopics : [ "SIMPLE_FILTER", "COMPLEX_FILTER" ],
             widgets: [
                {
                   name: "alfresco/lists/views/AlfListView",
