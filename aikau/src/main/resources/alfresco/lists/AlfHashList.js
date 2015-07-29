@@ -287,18 +287,35 @@ define(["dojo/_base/declare",
        */
       onFiltersUpdated: function alfresco_lists_AlfHashList__onFiltersUpdated() {
          if (this.useHash) {
-            var filterValues = {};
+            var filterValues = {}, processFilterValue;
+            
+            processFilterValue = function(value, propKey) {
+                var prop;
+                if (value !== undefined && value !== null) {
+                    if (typeof value === 'string')
+                    {
+                        value = lang.trim(value);
+                        if (value.length > 0) {
+                            filterValues[propKey] = value;
+                        }
+                    } else if (value instanceof Date) {
+                        // TODO should we default to ISO8601 here?
+                        filterValues[propKey] = value.getTime();
+                    } else if (value instanceof Object) {
+                        for (prop in value) {
+                            if(value.hasOwnProperty(prop)) {
+                                processFilterValue(value[prop], propKey + '.' + prop);
+                            }
+                        }
+                    } else {
+                        // default
+                        filterValues[propKey] = value;
+                    }
+                }
+            };
+            
             array.forEach(this.dataFilters, function(dataFilter){
-               var filterValue = dataFilter.value;
-               if(filterValue !== null && typeof filterValue !== "undefined") {
-                  if(typeof filterValue === "string") {
-                     filterValue = lang.trim(filterValue);
-                     if(!filterValue.length) {
-                        filterValue = null; // Remove empty strings from hash
-                     }
-                  }
-               }
-               filterValues[dataFilter.name] = filterValue;
+               processFilterValue(dataFilter.value, dataFilter.name);
             });
             hashUtils.updateHash(filterValues);
          } else {
