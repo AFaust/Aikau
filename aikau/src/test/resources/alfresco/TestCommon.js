@@ -357,8 +357,8 @@ define(["intern/dojo/node!fs",
          var selector = "" +
             "tr.sl-row:last-child td[data-publish-topic='" + publishTopic + "'] + " +
             "td.sl-data tr.sl-object-row " +
-            "td[data-pubsub-object-key=" + key + 
-            "]+td > table > tr";
+            "td[data-pubsub-object-key='" + key + 
+            "']+td > table > tr";
          return selector;
       },
 
@@ -377,8 +377,8 @@ define(["intern/dojo/node!fs",
          var selector = "" +
             "td[data-publish-topic='" + publishTopic + "'] + " +
             "td.sl-data tr.sl-object-row " +
-            "td[data-pubsub-object-key=" + key +
-            "]+ td td[data-pubsub-object-key='" + nestedKey + "'] " +
+            "td[data-pubsub-object-key='" + key +
+            "']+ td td[data-pubsub-object-key='" + nestedKey + "'] " +
             "+ td[data-pubsub-object-value='" + nestedValue + "']";
          return selector;
       },
@@ -398,8 +398,8 @@ define(["intern/dojo/node!fs",
          var selector = "" +
             "td[data-publish-topic='" + publishTopic + "'] + " +
             "td.sl-data tr.sl-object-row " +
-            "td[data-pubsub-object-key=" + key +
-            "]+ td td[data-pubsub-object-value='" + value + "']:nth-child(" + arrayIndex + ")";
+            "td[data-pubsub-object-key='" + key +
+            "']+ td td[data-pubsub-object-value='" + value + "']:nth-child(" + arrayIndex + ")";
          return selector;
       },
 
@@ -460,8 +460,8 @@ define(["intern/dojo/node!fs",
          }
          var selector = "" +
             ".alfresco-testing-SubscriptionLog tr.sl-row" + row +
-            " td[data-pubsub-object-key=" + key +
-            "]+td";
+            " td[data-pubsub-object-key='" + key +
+            "']+td";
          return selector;
       },
 
