@@ -299,7 +299,6 @@ define(["dojo/_base/declare",
                             filterValues[propKey] = value;
                         }
                     } else if (value instanceof Date) {
-                        // TODO should we default to ISO8601 here?
                         filterValues[propKey] = value.getTime();
                     } else if (value instanceof Object) {
                         for (prop in value) {
@@ -311,6 +310,8 @@ define(["dojo/_base/declare",
                         // default
                         filterValues[propKey] = value;
                     }
+                } else {
+                    filterValues[propKey] = value;
                 }
             };
             
