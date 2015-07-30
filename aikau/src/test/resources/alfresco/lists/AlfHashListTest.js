@@ -139,6 +139,11 @@ define(["intern!object",
           .then(function(elements) {
              assert.lengthOf(elements, 1, "The hash was not updated correctly - param missing");
           })
+          .end()
+          .findAllByCssSelector(TestCommon.pubDataCssSelector("ALF_HASH_CHANGED", "complex.dummy"))
+          .then(function(elements) {
+             assert.lengthOf(elements, 0, "The hash was not updated correctly - param should not be included");
+          })
           .end();
       },
       

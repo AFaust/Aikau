@@ -82,7 +82,8 @@ model.jsonModel = {
                 name: "complex",
                 value: {
                     type : "complexFilterType",
-                    param : "complexFilterParamValue"
+                    param : "complexFilterParamValue",
+                    dummy : null
                 }
              }
           }
