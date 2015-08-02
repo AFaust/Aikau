@@ -287,7 +287,7 @@ define(["dojo/_base/declare",
        */
       onFiltersUpdated: function alfresco_lists_AlfHashList__onFiltersUpdated() {
          if (this.useHash) {
-            var filterValues = {}, processFilterValue;
+            var filterValues = {}, processFilterValue, currentHash = hashUtils.getHash(), hashKey;
             
             processFilterValue = function(value, propKey) {
                 var prop;
@@ -312,6 +312,14 @@ define(["dojo/_base/declare",
                     }
                 } else {
                     filterValues[propKey] = value;
+                    for (hashKey in currentHash)
+                    {
+                        if (currentHash.hasOwnProperty(hashKey) && hashKey !== propKey && hashKey.indexOf(propKey + '.') === 0)
+                        {
+                            // existing hash key previously originated from a complex filter value now null/undefined
+                            filterValues[hashKey] = value;
+                        }
+                    }
                 }
             };
             
