@@ -18,8 +18,13 @@
  */
 
 /**
+ * This module provides a common base for any widget be it {@link externa:dijit/_TemplatedMixin}
+ * or {@link module:alfresco/core/_ConstructedWidgetMixin}, providing added base functionality
+ * (in addition to {@link external:dijit/_WidgetBase}) for handling setup / destruction of widgets
+ * swhile detached from the live DOM.
+ * 
  * @module alfresco/core/BaseWidget
- * @extends module:dijit/_WidgetBase
+ * @extends external:dijit/_WidgetBase
  * @mixes module:alfresco/core/Core
  * @author Axel Faust
  * @since 1.0.6x
@@ -32,7 +37,7 @@ define(["dojo/_base/declare",
     // check if we run on IE so we don't activate our preemptive 2.0 empty behaviour (to improve performance)
     // see https://bugs.dojotoolkit.org/ticket/16957
     // newer (unaffected) IEs are reported as either trident or edge
-    var isEmptyLeakAffected = has('ie');
+    var isEmptyLeakAffected = has("ie");
     
     return declare([_WidgetBase, Core], {
         
@@ -83,6 +88,17 @@ define(["dojo/_base/declare",
             this.inherited(arguments);
         },
         
+        applyAttributes : function alfresco_core_BaseWidget__applyAttributes() {
+            // Aikau widget config can be very complex and contain primarily non-DOM attributes
+            // applyAttributes can incurr significant overhead
+            var params = this.params;
+            this.params = null;
+            
+            this.inherited(arguments);
+            
+            this.params = params;
+        },
+        
         /**
          * Overriden function to ensure this instances DOM node is detached from the live DOM tree before its actual destruction.
          * 
@@ -119,7 +135,7 @@ define(["dojo/_base/declare",
                 {
                     if (preserveDom === true)
                     {
-                        domAttr.remove(domNode, 'widgetId');
+                        domAttr.remove(domNode, "widgetId");
                     }
                     else
                     {

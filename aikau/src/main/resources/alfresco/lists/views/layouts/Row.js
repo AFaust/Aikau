@@ -21,26 +21,24 @@
  * Use this widget to render a row of [cells]{@link module:alfresco/lists/views/layouts/Cell}
  * 
  * @module alfresco/lists/views/layouts/Row
- * @extends external:dijit/_WidgetBase
- * @mixes external:dojo/_TemplatedMixin
+ * @extends module:alfresco/core/BaseWidget
+ * @mixes module:alfresco/core/_ConstructedWidgetMixin
  * @mixes module:alfresco/lists/views/layouts/_MultiItemRendererMixin
- * @mixes module:alfresco/core/Core
  * @mixes module:alfresco/lists/views/layouts/_LayoutMixin
+ * @mixes module:alfresco/documentlibrary/_AlfDndDocumentUploadMixin
  * @author Dave Draper
  */
 define(["dojo/_base/declare",
-        "dijit/_WidgetBase", 
-        "dijit/_TemplatedMixin",
-        "dojo/text!./templates/Row.html",
+        "alfresco/core/BaseWidget", 
+        "alfresco/core/_ConstructedWidgetMixin",
         "alfresco/lists/views/layouts/_MultiItemRendererMixin",
-        "alfresco/core/Core",
         "alfresco/lists/views/layouts/_LayoutMixin",
         "alfresco/documentlibrary/_AlfDndDocumentUploadMixin",
-        "dojo/dom-class"], 
-        function(declare, _WidgetBase, _TemplatedMixin, template, _MultiItemRendererMixin, AlfCore, _LayoutMixin, 
-                 _AlfDndDocumentUploadMixin, domClass) {
+        "dojo/on"], 
+        function(declare, BaseWidget, _ConstructedWidgetMixin, _MultiItemRendererMixin, _LayoutMixin, 
+                 _AlfDndDocumentUploadMixin, on) {
 
-   return declare([_WidgetBase, _TemplatedMixin, _MultiItemRendererMixin, AlfCore, _LayoutMixin, _AlfDndDocumentUploadMixin], {
+   return declare([BaseWidget, _ConstructedWidgetMixin, _MultiItemRendererMixin, _LayoutMixin, _AlfDndDocumentUploadMixin], {
       
       /**
        * An array of the CSS files to use with this widget.
@@ -50,14 +48,6 @@ define(["dojo/_base/declare",
        * @default [{cssFile:"./css/Row.css"}]
        */
       cssRequirements: [{cssFile:"./css/Row.css"}],
-      
-      /**
-       * The HTML template to use for the widget.
-       * 
-       * @instance
-       * @type {String}
-       */
-      templateString: template,
       
       /**
        * Any additional CSS classes that should be applied to the rendered DOM element.
@@ -111,6 +101,51 @@ define(["dojo/_base/declare",
        * @default
        */
       zebraStriping: false,
+      
+      /**
+       * Builds the DOM structure.
+       * 
+       * @instance buildDOMStructure
+       */
+      buildDOMStructure : function alfresco_lists_views_layouts_Row__buildDOMStructure(rootNode) {
+          var nodeProps = {
+              className : "alfresco-lists-views-layouts-Row",
+              tabindex : "0"
+          };
+    
+          if (this.additionalCssClasses)
+          {
+              nodeProps.className += " ";
+              nodeProps.className += this.additionalCssClasses;
+              // we dealt with that
+              delete this.additionalCssClasses;
+          }
+    
+          // baseClass may be inherited from dijit/_WidgetBase
+          if (this.baseClass)
+          {
+              nodeProps.className += " ";
+              nodeProps.className += this.baseClass
+          }
+          
+          if (this.style)
+          {
+              nodeProps.style = this.style;
+              // we dealt with that
+              delete this.style;
+          }
+    
+          this.containerNode = this.domNode = domConstruct.create("tr", nodeProps, rootNode);
+      },
+      
+      /**
+       * Sets up the DOM events.
+       * 
+       * @instance setupEvents
+       */
+      setupEvents : function alfresco_lists_views_layouts_Row__setupEvents() {
+          this.own(on(this.domNode, "click", lang.hitch(this, this.onFocusClick)));
+      },
 
       /**
        * Calls [processWidgets]{@link module:alfresco/core/Core#processWidgets}
@@ -118,7 +153,6 @@ define(["dojo/_base/declare",
        * @instance postCreate
        */
       postCreate: function alfresco_lists_views_layouts_Row__postCreate() {
-         domClass.add(this.domNode, this.additionalCssClasses ? this.additionalCssClasses : "");
          if (this.widgets)
          {
             if (this.widgetModelModifiers !== null)
