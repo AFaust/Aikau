@@ -32,7 +32,8 @@
 define(["dojo/_base/declare",
         "dijit/_WidgetBase",
         "alfresco/core/Core",
-        "dojo/has"], function(declare, _WidgetBase, Core, has) {
+        "dojo/dom-class",
+        "dojo/has"], function(declare, _WidgetBase, Core, domAttr, has) {
     
     // check if we run on IE so we don't activate our preemptive 2.0 empty behaviour (to improve performance)
     // see https://bugs.dojotoolkit.org/ticket/16957
@@ -49,6 +50,20 @@ define(["dojo/_base/declare",
          * @default false
          */
         _attachedToLiveDOM: false,
+        
+        /**
+         * Implements the widget life-cycle method to early detect attachment to the live DOM.
+         * 
+         * @instance
+         */
+        postCreate: function alfresco_core_BaseWidget__postCreate() {
+            if (document.body.contains(this.domNode))
+            {
+                // consider ourselves to be attached already (CoreWidgetProcessing should still call attachedToLiveDOM at appropriate time in lifecycle)
+                this._attachedToLiveDOM = true;
+            }
+            this.inherited(arguments);
+        },
         
         /**
          * This is an extension point for handling the attachment of this instances DOM node from the live DOM tree.
@@ -90,7 +105,8 @@ define(["dojo/_base/declare",
         
         applyAttributes : function alfresco_core_BaseWidget__applyAttributes() {
             // Aikau widget config can be very complex and contain primarily non-DOM attributes
-            // applyAttributes can incurr significant overhead
+            // applyAttributes can incur significant overhead if we keep params
+            // dijit/_WidgetBase still considers any properties supported by widget setters + mixed in from params
             var params = this.params;
             this.params = null;
             

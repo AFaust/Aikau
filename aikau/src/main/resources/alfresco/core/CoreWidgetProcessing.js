@@ -71,7 +71,17 @@ define(["dojo/_base/declare",
        * @default false
        * @since 1.0.6x
        */
-      suppressWidgetInfo : false,
+      suppressWidgetInfo: false,
+      
+      /**
+       * This flag can be used to always force the creation of widgets in a detached DOM.
+       *  
+       * @instance
+       * @type {boolean}
+       * @default false
+       * @since 1.0.6x
+       */
+      defaultToDetachedWidgetCreation: false,
       
       /**
        * This will be used to keep track of all widgets that are created so that they can be destroyed
@@ -240,10 +250,13 @@ define(["dojo/_base/declare",
                lang.setObject(this.getWidgetProcessingLocation(processWidgetsId, this._processedWidgetsLocationPrefix), new Deferred(), this);
                lang.setObject(this.getWidgetProcessingLocation(processWidgetsId, this._processingWidgetsLocationPrefix), [], this);
                
-               lang.setObject(this.getWidgetProcessingLocation(processWidgetsId, this._processingTargetNodePrefix), rootNode, this);
-               // use documentFragment to assemble complete widgets in detached DOM before attaching to potentially live target DOM tree
-               rootNode = document.createDocumentFragment();
-               lang.setObject(this.getWidgetProcessingLocation(processWidgetsId, this._processingRootNodePrefix), rootNode, this);
+               if (this.defaultToDetachedWidgetCreation === true || this._attachedToLiveDOM === undefined || this._attachedToLiveDOM === true)
+               {
+                   lang.setObject(this.getWidgetProcessingLocation(processWidgetsId, this._processingTargetNodePrefix), rootNode, this);
+                   // use documentFragment to assemble complete widgets in detached DOM before attaching to potentially live target DOM tree
+                   rootNode = document.createDocumentFragment();
+                   lang.setObject(this.getWidgetProcessingLocation(processWidgetsId, this._processingRootNodePrefix), rootNode, this);
+               }
 
                // Iterate over all the widgets in the configuration object and add them...
                array.forEach(widgets, lang.hitch(this, this.processWidget, rootNode, processWidgetsId));
@@ -355,15 +368,8 @@ define(["dojo/_base/declare",
                 targetRootNode.appendChild(rootNode);
             }
 
-            // IMPORTANT: We need to reset the processedWidgets with the filtered version...
-            var promise = lang.getObject(this.getWidgetProcessingLocation(processWidgetsId, this._processedWidgetsLocationPrefix), false, this);
-            promise.resolve(processedWidgets);
-
-            this.allWidgetsProcessed(processedWidgets, processWidgetsId);
-            this.widgetProcessingComplete = true; // NOTE: Not safe to refer to when calling processWidgets multiple times from a single widget
-            
             // this._attachedToLiveDOM potentially defined by BaseWidget that CoreWidgetProcessing has been mixed in
-            if (!targetRootNode || (this._attachedToLiveDOM !== false && document.body.contains(targetRootNode)))
+            if ((this._attachedToLiveDOM === undefined || this._attachedToLiveDOM === true) && (!targetRootNode || document.body.contains(targetRootNode)))
             {
                 array.forEach(processedWidgets, function(widget){
                     if (typeof widget.attachedToLiveDOM === "function")
@@ -371,7 +377,17 @@ define(["dojo/_base/declare",
                         widget.attachedToLiveDOM();
                     }
                 }, this);
-                
+            }
+            
+            // IMPORTANT: We need to reset the processedWidgets with the filtered version...
+            var promise = lang.getObject(this.getWidgetProcessingLocation(processWidgetsId, this._processedWidgetsLocationPrefix), false, this);
+            promise.resolve(processedWidgets);
+
+            this.allWidgetsProcessed(processedWidgets, processWidgetsId);
+            this.widgetProcessingComplete = true; // NOTE: Not safe to refer to when calling processWidgets multiple times from a single widget
+            
+            if (!targetRootNode || ((this._attachedToLiveDOM === undefined || this._attachedToLiveDOM === true) && document.body.contains(targetRootNode)))
+            {
                 // we've directly manipulated the live DOM so inform anyone that might be interested
                 // we want to avoid subscribers to be informed about not yet active widgets
                 this.alfPublish("ALF_WIDGET_PROCESSING_COMPLETE", {}, true);
@@ -380,7 +396,7 @@ define(["dojo/_base/declare",
             // cleanup callback, widget and DOM references to avoid memory issues
             array.forEach([this._processedWidgetsLocationPrefix, this._processingWidgetsLocationPrefix, this._processingTargetNodePrefix, this._processingRootNodePrefix], function(prefix){
                 lang.setObject(this.getWidgetProcessingLocation(processWidgetsId, prefix), null, this);
-            }, this)
+            }, this);
          }
       },
 
@@ -821,7 +837,7 @@ define(["dojo/_base/declare",
                 }
 
                 // Create a node for debug mode...
-                if (AlfConstants.DEBUG && instantiatedWidget.domNode && this.suppressWidgetInfo !== true)
+                if (AlfConstants.DEBUG && instantiatedWidget.domNode && instantiatedWidget.suppressWidgetInfo !== true && initArgs.suppressWidgetInfo !== true)
                 {
                    domClass.add(instantiatedWidget.domNode, "alfresco-debug-Info highlight");
                    var infoWidget = new WidgetInfo({
