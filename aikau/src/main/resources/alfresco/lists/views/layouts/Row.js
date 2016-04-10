@@ -29,14 +29,16 @@
  * @author Dave Draper
  */
 define(["dojo/_base/declare",
-        "alfresco/core/BaseWidget", 
+        "alfresco/core/BaseWidget",
         "alfresco/core/_ConstructedWidgetMixin",
         "alfresco/lists/views/layouts/_MultiItemRendererMixin",
         "alfresco/lists/views/layouts/_LayoutMixin",
         "alfresco/documentlibrary/_AlfDndDocumentUploadMixin",
+        "dojo/_base/lang",
+        "dojo/dom-construct",
         "dojo/on"], 
         function(declare, BaseWidget, _ConstructedWidgetMixin, _MultiItemRendererMixin, _LayoutMixin, 
-                 _AlfDndDocumentUploadMixin, on) {
+                 _AlfDndDocumentUploadMixin, lang, domConstruct, on) {
 
    return declare([BaseWidget, _ConstructedWidgetMixin, _MultiItemRendererMixin, _LayoutMixin, _AlfDndDocumentUploadMixin], {
       
@@ -48,6 +50,16 @@ define(["dojo/_base/declare",
        * @default [{cssFile:"./css/Row.css"}]
        */
       cssRequirements: [{cssFile:"./css/Row.css"}],
+      
+      /**
+       * Overriden flag inherited from {@link module:alfresco/core/CoreWidgetProcessing} to always create all rows in a detached DOM tree.
+       * 
+       * @instance
+       * @type {boolean}
+       * @default true
+       * @since 1.0.6x
+       */
+      defaultToDetachedWidgetCreation: true,
       
       /**
        * Any additional CSS classes that should be applied to the rendered DOM element.
@@ -125,7 +137,7 @@ define(["dojo/_base/declare",
           if (this.baseClass)
           {
               nodeProps.className += " ";
-              nodeProps.className += this.baseClass
+              nodeProps.className += this.baseClass;
           }
           
           if (this.style)

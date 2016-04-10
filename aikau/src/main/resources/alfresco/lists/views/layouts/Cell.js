@@ -29,8 +29,9 @@
 define(["dojo/_base/declare",
         "alfresco/core/BaseWidget",
         "alfresco/core/_ConstructedWidgetMixin",
-        "alfresco/lists/views/layouts/_LayoutMixin"], 
-        function(declare, BaseWidget, _ConstructedWidgetMixin, _LayoutMixin) {
+        "alfresco/lists/views/layouts/_LayoutMixin",
+        "dojo/dom-construct"], 
+        function(declare, BaseWidget, _ConstructedWidgetMixin, _LayoutMixin, domConstruct) {
 
    return declare([BaseWidget, _ConstructedWidgetMixin, _LayoutMixin], {
       
@@ -93,7 +94,7 @@ define(["dojo/_base/declare",
           if (this.baseClass)
           {
               nodeProps.className += " ";
-              nodeProps.className += this.baseClass
+              nodeProps.className += this.baseClass;
           }
           
           if (this.style)

@@ -52,15 +52,26 @@ define(["dojo/_base/declare",
         "alfresco/core/JsNode",
         "dojo/_base/lang",
         "dojo/_base/array",
+        "dojo/dom-construct",
         "dojo/on",
         "dojo/keys",
         "jquery",
         "jqueryui"], 
         function(declare, BaseWidget, _ConstructedWidgetMixin, _KeyNavContainer, _MultiItemRendererMixin, 
-                 JsNode, lang, array, on, keys, $) {
+                 JsNode, lang, array, domConstruct, on, keys, $) {
    
    return declare([BaseWidget, _ConstructedWidgetMixin, _KeyNavContainer, _MultiItemRendererMixin], {
-      
+
+      /**
+       * Overriden flag inherited from {@link module:alfresco/core/CoreWidgetProcessing} to always create all rows in a detached DOM tree.
+       * 
+       * @instance
+       * @type {boolean}
+       * @default true
+       * @since 1.0.6x
+       */
+      defaultToDetachedWidgetCreation: true,
+       
       /**
        * The widgets to be processed to generate each item in the rendered view.
        * 
@@ -76,7 +87,9 @@ define(["dojo/_base/declare",
        * @instance buildDOMStructure
        */
       buildDOMStructure : function alfresco_lists_views_ListRenderer__buildDOMStructure(rootNode) {
-          var nodeProps = {};
+          var nodeProps = {
+              className : ""
+          };
     
           if (this.additionalCssClasses)
           {
