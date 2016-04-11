@@ -392,29 +392,11 @@ define(["dojo/_base/declare",
       buildDOMStructure : function alfresco_renderers_Property__buildDOMStructure(rootNode) {
          var nodeProps, inner, label, value;
 
-         nodeProps = {
-            className : this.renderedValueClass,
-            tabindex : "0"
-         };
+         nodeProps = this._buildDOMNodeProperties();
          
-         if (this.maxWidth)
-         {
-            nodeProps.className += " has-max-width";
-            nodeProps.style = nodeProps.style || "";
-            nodeProps.style += "max-width:" + this.maxWidth + ";";
-         }
-         
-         if (this.onlyShowOnHover === true)
-         {
-            nodeProps.className += " hover-only";
-         }
-         
-         if (this.warningDisplayed)
-         {
-             nodeProps.className += " faded";
-         }
-
          this.renderedValueNode = this.domNode = domConstruct.create("span", nodeProps, rootNode);
+         this._setupWidgetInfo();
+         
          inner = domConstruct.create("span", {
             className : "inner"
          }, this.renderedValueNode);
@@ -426,6 +408,33 @@ define(["dojo/_base/declare",
             className : "value",
             innerHTML : this.renderedValue
          }, inner);
+      },
+      
+      _buildDOMNodeProperties : function alfresco_renderers_Property__buildDOMNodeProperties() {
+          var nodeProps = this.inherited(arguments);
+          
+          nodeProps.className += " ";
+          nodeProps.className += this.renderedValueClass;
+          nodeProps.tabindex = "0";
+          
+          if (this.maxWidth)
+          {
+             nodeProps.className += " has-max-width";
+             nodeProps.style = nodeProps.style || "";
+             nodeProps.style += "max-width:" + this.maxWidth + ";";
+          }
+          
+          if (this.onlyShowOnHover === true)
+          {
+             nodeProps.className += " hover-only";
+          }
+          
+          if (this.warningDisplayed)
+          {
+              nodeProps.className += " faded";
+          }
+          
+          return nodeProps;
       },
 
       /**

@@ -837,7 +837,8 @@ define(["dojo/_base/declare",
                 }
 
                 // Create a node for debug mode...
-                if (AlfConstants.DEBUG && instantiatedWidget.domNode && instantiatedWidget.suppressWidgetInfo !== true && initArgs.suppressWidgetInfo !== true)
+                // unless suppressed or pro-actively created by widget itself
+                if (AlfConstants.DEBUG && instantiatedWidget.domNode && instantiatedWidget.suppressWidgetInfo !== true && !domClass.contains(instantiatedWidget.domNode, "alfresco-debug-Info"))
                 {
                    domClass.add(instantiatedWidget.domNode, "alfresco-debug-Info highlight");
                    var infoWidget = new WidgetInfo({

@@ -78,32 +78,11 @@ define(["dojo/_base/declare",
        * @instance buildDOMStructure
        */
       buildDOMStructure : function alfresco_lists_views_layouts_Cell__buildDOMStructure(rootNode) {
-          var nodeProps = {
-              className : "alfresco-lists-views-layouts-Cell"
-          };
-    
-          if (this.additionalCssClasses)
-          {
-              nodeProps.className += " ";
-              nodeProps.className += this.additionalCssClasses;
-              // we dealt with that
-              delete this.additionalCssClasses;
-          }
-    
-          // baseClass may be inherited from dijit/_WidgetBase
-          if (this.baseClass)
-          {
-              nodeProps.className += " ";
-              nodeProps.className += this.baseClass;
-          }
+          var nodeProps = this._buildDOMNodeProperties();
           
-          if (this.style)
-          {
-              nodeProps.style = this.style;
-              // we dealt with that
-              delete this.style;
-          }
-          
+          nodeProps.className += " ";
+          nodeProps.className += "alfresco-lists-views-layouts-Cell";
+    
           if (this.colspan)
           {
              nodeProps.colspan = this.colspan;
@@ -118,6 +97,7 @@ define(["dojo/_base/declare",
           }
     
           this.containerNode = this.domNode = domConstruct.create("td", nodeProps, rootNode);
+          this._setupWidgetInfo();
       },
 
       /**

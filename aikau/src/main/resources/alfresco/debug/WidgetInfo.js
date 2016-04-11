@@ -85,11 +85,10 @@ define(["dojo/_base/declare",
        * @instance buildDOMStructure
        */
       buildDOMStructure : function alfresco_debug_WidgetInfo__buildDOMStructure(rootNode) {
-          var nodeProps;
+          var nodeProps = this._buildDOMNodeProperties();
           
-          nodeProps = {
-             className : "alfresco-debug-WidgetInfo"
-          };
+          nodeProps.className += " ";
+          nodeProps.className += "alfresco-debug-WidgetInfo";
           
           this.domNode = domConstruct.create("div", nodeProps, rootNode);
           

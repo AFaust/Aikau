@@ -29,10 +29,23 @@
  * @since 1.0.6x
  */
 define([ "dojo/_base/declare",
+         "require",
          "alfresco/core/Core",
-         "dojo/dom-construct" ], function(declare, Core, domConstruct)
+         "dojo/dom-construct",
+         "service/constants/Default"], function(declare, require, Core, domConstruct, AlfConstants)
 {
     return declare([ Core ], {
+        
+        /**
+         * This flag can be used to suppress the inclusion of [debug WidgetInfo]{@link module:alfresco/debug/WidgetInfo}
+         * instances for this widget, even when the [debug flag]{@link module:service/constants/Default#DEBUG} is set.
+         *  
+         * @instance
+         * @type {boolean}
+         * @default false
+         * @since 1.0.6x
+         */
+        suppressWidgetInfo: false,
         
         /**
          * Overriden function to serve as a simple sub-lifecycle dispatcher for constructed widget instantiation.
@@ -57,33 +70,10 @@ define([ "dojo/_base/declare",
          * @param {Node} [rootNode] - the node this widget should attach to
          */
         buildDOMStructure : function alfresco_core_ConstructedWidgetMixin__buildDOMStructure(rootNode) {
-            var nodeProps = {};
-
-            if (this.additionalCssClasses)
-            {
-                nodeProps.className = this.additionalCssClasses;
-                // we dealt with that
-                delete this.additionalCssClasses;
-            }
-
-            // baseClass may be inherited from dijit/_WidgetBase
-            if (this.baseClass)
-            {
-                if (nodeProps.className)
-                {
-                    nodeProps.className += " ";
-                }
-                nodeProps.className = (nodeProps.className || "") + this.baseClass
-            }
-            
-            if (this.style)
-            {
-                nodeProps.style = this.style;
-                // we dealt with that
-                delete this.style;
-            }
+            var nodeProps = this._buildDOMNodeProperties();
 
             this.domNode = domConstruct.create("div", nodeProps, rootNode);
+            this._setupWidgetInfo();
         },
         
         /**
@@ -96,6 +86,59 @@ define([ "dojo/_base/declare",
          */
         setupEvents : function alfresco_core_ConstructedWidgetMixin__setupEvents() {
             // extension point
+        },
+        
+        _buildDOMNodeProperties : function alfresco_core_ConstructedWidgetMixin__buildDOMNodeProperties() {
+            var nodeProps = {
+                className : ""
+            };
+            
+            if (AlfConstants.DEBUG && this.suppressWidgetInfo !== true)
+            {
+                nodeProps.className += "alfresco-debug-Info highlight";
+            }
+            
+            if (this.additionalCssClasses)
+            {
+                nodeProps.className += " ";
+                nodeProps.className += this.additionalCssClasses;
+                // we dealt with that
+                delete this.additionalCssClasses;
+            }
+
+            // baseClass may be inherited from dijit/_WidgetBase
+            if (this.baseClass)
+            {
+                nodeProps.className += " ";
+                nodeProps.className = (nodeProps.className || "") + this.baseClass
+            }
+            
+            if (this.style)
+            {
+                nodeProps.style = this.style;
+                // we dealt with that
+                delete this.style;
+            }
+            
+            return nodeProps;
+        },
+        
+        _setupWidgetInfo : function alfresco_core_ConstructedWidgetMixin__setupWidgetInfo() {
+            var WidgetInfo, infoWidget;
+            if (AlfConstants.DEBUG && this.suppressWidgetInfo !== true)
+            {
+               // can't have WidgetInfo as a dependency of this mixin since WidgetInfo mixes it itself
+               WidgetInfo = require("alfresco/debug/WidgetInfo");
+               if (!this.isInstanceOf(WidgetInfo))
+               {
+                   infoWidget = new WidgetInfo({
+                      displayId : this.id || '',
+                      displayType : this.declaredClass,
+                      displayConfig: this.params
+                   });
+                   this.domNode.appendChild(infoWidget.domNode);
+               }
+            }
         }
 
     });
