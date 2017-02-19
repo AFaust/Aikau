@@ -404,13 +404,23 @@ define(["dojo/_base/declare",
       suppressDndUploading: true,
 
       /**
-       * The property in the response that indicates the total number of results available.
+       * The property in the response that indicates the total number of results loaded.
        *
        * @instance
        * @type {string}
        * @default
        */
       totalResultsProperty: "totalRecords",
+
+      /**
+       * The property in the response that indicates the total number of results available.
+       *
+       * @instance
+       * @type {string}
+       * @default
+       * @since 1.0.102
+       */
+      numberFoundProperty: "numberFound",
 
       /**
        * Indicates whether Infinite Scroll should be used when requesting documents
@@ -1464,51 +1474,18 @@ define(["dojo/_base/declare",
          else
          {
             this.alfLog("log", "Data Loaded", payload, this);
-            var foundItems = false;
-            if (!this.itemsProperty)
+            var currentData = this.extractCurrentDataFromPayload(payload);
+
+            if (currentData.items)
             {
-               this.currentData = {};
-               this.currentData.items = payload.response;
-               foundItems = true;
+               this.currentData = currentData;
+               this.processLoadedData();
+               this.renderView();
+               this.retainPreviousItemSelectionState(this.currentData.items);
             }
             else
             {
-               var items = lang.getObject(this.itemsProperty, false, payload.response);
-               if (!items)
-               {
-                  // As a fallback we're going to check the actual payload object...
-                  // It would be reasonable to ask why we don't just look in payload initially and
-                  // expect the "itemsProperty" to include "response", however that is not the most common
-                  // scenario and this approach catches the edge cases...
-                  items = lang.getObject(this.itemsProperty, false, payload);
-               }
-
-               if (items)
-               {
-                  this.currentData = {};
-                  this.currentData.items = items;
-                  foundItems = true;
-
-                  // We lose metaData unless we store that as well.
-                  var metadata = lang.getObject(this.metadataProperty, false, payload.response);
-                  if (metadata)
-                  {
-                     this.currentData.metadata = metadata;
-                  }
-               }
-               else
-               {
-                  this.alfLog("warn", "Failure to retrieve items with given itemsProperty: " + this.itemsProperty, this);
-                  this.showDataLoadFailure();
-               }
-            }
-
-            if (foundItems)
-            {
-               this.currentData.filters = payload.requestConfig && this._extractFilters(payload.requestConfig);
-               this.processLoadedData(payload.response || this.currentData);
-               this.renderView();
-               this.retainPreviousItemSelectionState(items);
+               this.showDataLoadFailure();
             }
 
             // This request has finished, allow another one to be triggered.
@@ -1516,6 +1493,90 @@ define(["dojo/_base/declare",
          }
       },
 
+      /**
+       * Extracts data from the load response payload and turns it into an object representation to be treated
+       * as this list instance's currentData.
+       * This operation consolidates all response payload handling previously spread across
+       * [onDataLoadSuccess]{@link module:alfresco/lists/AlfList#onDataLoadSuccess} and
+       * [processLoadedData]{@link module:alfresco/lists/AlfList#processLoadedData} in a way that primarily dealt
+       * with Xhr-based responses. This operation deals with both legacy Xhr-responses received directly i.e. from
+       * the [CrudService]{@link module:alfresco/services/CrudService} as well as custom service payloads.
+       *
+       * @instance
+       * @since 1.0.102
+       */
+      extractCurrentDataFromPayload: function alfresco_lists_AlfList__extractCurrentDataFromPayload(payload)
+      {
+         var currentData = {}, lookupFn, metadata;
+
+         /*
+          * The following code will - for compatibility with legacy behaviour - always check payoad.response
+          * first before checking payload directly. A previous comment read:
+          * 'It would be reasonable to ask why we don't just look in payload initially and expect the
+          * "itemsProperty" to include "response", however that is not the most common scenario and this
+          * approach catches the edge cases...'
+          */
+         lookupFn = function (property, defaultValue)
+         {
+            var lookupResult;
+            if (lang.exists(property, payload.response))
+            {
+               lookupResult = lang.getObject(property, false, payload.response);
+            }
+            else if (lang.exists(property, payload))
+            {
+               lookupResult = lang.getObject(property, false, payload);
+            }
+            lookupResult = lookupResult || defaultValue;
+            return lookupResult;
+         };
+
+         if (!this.itemsProperty)
+         {
+            // fallback: assume generic response or items property hold items to display
+            currentData.items = payload.response || payload.items;
+            
+            if (!currentData.items)
+            {
+               this.alfLog("warn", "Failure to retrieve items from payload using fallback access", this);
+            }
+         }
+         else
+         {
+            currentData.items = lookupFn(this.itemsProperty);
+
+            if (!currentData.items)
+            {
+               this.alfLog("warn", "Failure to retrieve items with given itemsProperty: " + this.itemsProperty, this);
+            }
+         }
+
+         if (currentData.items)
+         {
+             // copy metadata if present
+             metadata = this.metadataProperty ? lookupFn(this.metadataProperty) : null;
+             if (metadata)
+             {
+                 currentData.metadata = metadata;
+             }
+
+             // extract totalRecords / startIndex (previously handled in processLoadedData)
+             currentData.totalRecords = this.totalResultsProperty ? lookupFn(this.totalResultsProperty, currentData.items.length || 0) : currentData.items.length || 0;
+             currentData.startIndex = this.startIndexProperty ? lookupFn(this.startIndexProperty, 0) : 0;
+
+             // extract numberFound (previously handled only in AlfSearchList via currentData=payload simplification)
+             currentData.numberFound = this.numberFoundProperty ? lookupFn(this.numberFoundProperty, currentData.startIndex + currentData.totalRecords) : (currentData.startIndex + currentData.totalRecords);
+
+             // legacy handling for decoding filters from Xhr request
+             if (payload.requestConfig)
+             {
+                 currentData.filters = this._extractFilters(payload.requestConfig);
+             }
+         }
+
+         return currentData;
+      },
+      
       /**
        * This function renders the view with the current data.
        *
@@ -1564,30 +1625,13 @@ define(["dojo/_base/declare",
        * and stores any requested starting index and total records data.
        *
        * @instance
-       * @param {object} response The original response.
        */
-      processLoadedData: function alfresco_lists_AlfList__processLoadedData(response) {
+      processLoadedData: function alfresco_lists_AlfList__processLoadedData() {
          // Publish the details of the loaded documents. The initial use case for this was to allow
          // the selected items menu to know how many items were available for selection but it
          // clearly has many other uses...
-         this.totalRecords = this.currentData.items ? this.currentData.items.length : 0;
-         this.startIndex = 0;
-         if (response !== null)
-         {
-            var tmp = lang.getObject(this.totalResultsProperty, false, response);
-            if (tmp)
-            {
-               this.totalRecords = tmp;
-            }
-
-            tmp = lang.getObject(this.startIndexProperty, false, response);
-            if (tmp)
-            {
-               this.startIndex = tmp;
-            }
-         }
-         this.currentData.totalRecords = this.totalRecords;
-         this.currentData.startIndex = this.startIndex;
+         this.totalRecords = this.currentData.totalRecords;
+         this.startIndex = this.currentData.startIndex;
 
          this.alfPublish(this.documentsLoadedTopic, {
             documents: this.currentData.items,

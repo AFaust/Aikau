@@ -553,29 +553,28 @@ define(["dojo/_base/declare",
        * data once it's existence has been verified
        *
        * @instance
-       * @param {object} response The original response.
        */
-      processLoadedData: function alfresco_documentlibrary_AlfDocumentList__processLoadedData(response) {
-         array.forEach(this.currentData, function(item) {
+      processLoadedData: function alfresco_documentlibrary_AlfDocumentList__processLoadedData() {
+         array.forEach(this.currentData.items, function(item) {
             item.jsNode = new JsNode(item.node);
          }, this);
 
          // Publish the details of the metadata returned from the data request...
-         if (response.metadata)
+         if (this.currentData.metadata)
          {
             this.alfPublish(this.metadataChangeTopic, {
-               node: response.metadata
+               node: this.currentData.metadata
             });
 
             // Publish the details of the permissions for the current user. This will
             // only be available when the a specific node is shown rather than a set
             // of results across multiple nodes (e.g. the result of a filter request)
-            if (response.metadata.parent &&
-                response.metadata.parent.permissions &&
-                response.metadata.parent.permissions.user)
+            if (this.currentData.metadata.parent &&
+                this.currentData.metadata.parent.permissions &&
+                this.currentData.metadata.parent.permissions.user)
             {
                this.alfPublish(this.userAccessChangeTopic, {
-                  userAccess: response.metadata.parent.permissions.user
+                  userAccess: this.currentData.metadata.parent.permissions.user
                });
             }
          }

@@ -149,17 +149,6 @@ define(["dojo/_base/declare",
       spellcheck: true,
 
       /**
-       * Overrides the [default value]{@link module:alfresco/lists/AlfList#totalResultsProperty} to use
-       * the property expected when using the search API.
-       *
-       * @instance
-       * @type {string}
-       * @default
-       * @since 1.0.32
-       */
-      totalResultsProperty: "numberFound",
-
-      /**
        * Overrides the [inherited default]{@link module:alfresco/lists/AlfHashList#updateInstanceValues}
        * to ensure that instance values should be updated from the hash. This only appliees when
        * [useHash]{@link module:alfresco/lists/AlfHashList#useHash} is configured to be true.
@@ -715,7 +704,7 @@ define(["dojo/_base/declare",
          this.alfLog("log", "Search Results Loaded", payload, this);
 
          var newData = payload.response;
-         this.currentData = newData; // Some code below expects this even if the view is null.
+         this.currentData = this.extractCurrentDataFromPayload(payload); // Some code below expects this even if the view is null.
 
          // Reset suspending the spell check...
          this._suspendSpellCheck = false;
@@ -725,7 +714,7 @@ define(["dojo/_base/declare",
          if (view !== null)
          {
             this.showRenderingMessage();
-            this.processLoadedData(payload.response || this.currentData);
+            this.processLoadedData();
             if (this.useInfiniteScroll)
             {
                view.augmentData(newData);
