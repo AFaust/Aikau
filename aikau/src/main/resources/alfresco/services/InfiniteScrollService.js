@@ -48,6 +48,19 @@ define(["dojo/_base/declare",
       dataloadInProgress: false,
 
       /**
+       * Number of milliseconds to wait for a "data load in progress" to complete before allowing
+       * additional scroll events that might trigger an infinite scrolling load request. As long
+       * as this property is set to a non-positive number no further scroll events will be allowed
+       * until a pubSub event has been received that a previous load has been completed.
+       *
+       * @instance
+       * @type {number}
+       * @default -1
+       * @since 1.0.102
+       */
+      dataloadInProgressTimeout: -1,
+
+      /**
        * Scroll tolerance in pixels.
        *
        * How close to the bottom of the page do we want to get before we request the next items?
@@ -68,6 +81,18 @@ define(["dojo/_base/declare",
        * @default
        */
       _registerScrollListenerImmediately: true,
+
+      /**
+       * The internal timestamp the last [scrollNearBottom]{@link module:alfresco/documentlibrary/_AlfDocumentListTopicMixin#scrollNearBottom}
+       * event was triggered when [dataloadInProgressTimeout]{@link module:alfresco/services/InfiniteScrollService#dataloadInProgressTimeout}
+       * is a positive number.
+       *
+       * @instance
+       * @type {number}
+       * @default
+       * @since 1.0.102
+       */
+      _dataloadTriggered: null,
 
       /**
        * @instance
@@ -95,14 +120,20 @@ define(["dojo/_base/declare",
 
       /**
        * When the scroll event triggers, check location and pass on the warning that we're near the bottom of the page
-       * sets dataloadInProgress to prevent duplicated triggers when the page is scrolled slowly.
+       * sets dataloadInProgress and [_dataloadTriggered]{@link module:alfresco/services/InfiniteScrollService#_dataloadTriggered}
+       * to prevent duplicated triggers when the page is scrolled slowly.
        *
        * @instance
        * @param {object} payload
        */
       onEventsScroll: function alfresco_services_InfiniteScrollService__onEventsScroll(payload) {
-         if (this.nearBottom(payload.node) && !this.dataloadInProgress) {
+         var shouldTrigger = this.dataloadInProgress === false ||
+            (this.dataloadInProgressTimeout > 0 && this._dataloadTriggered !== null &&
+               (Date.now() - this._dataloadTriggered) > this.dataloadInProgressTimeout);
+
+         if (this.nearBottom(payload.node) && shouldTrigger) {
             this.dataloadInProgress = true;
+            this._dataloadTriggered = Date.now();
             this.alfPublish(this.scrollNearBottom);
          }
       },
@@ -115,6 +146,7 @@ define(["dojo/_base/declare",
        */
       onScrollReturn: function alfresco_services_InfiniteScrollService__onScrollReturn(/*jshint unused:false*/ payload) {
          this.dataloadInProgress = false;
+         this._dataloadTriggered = null;
       },
 
       /**

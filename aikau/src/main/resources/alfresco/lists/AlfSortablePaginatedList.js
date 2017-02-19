@@ -42,7 +42,7 @@
  * [useHash]{@link module:alfresco/lists/AlfHashList#useHash} is configured to be true.</p>
  * 
  * <p>Page navigation can also be performed with infinite scrolling when
- * [useInfiniteScroll]{@link module:alfresco/lists/AlfSortablePaginatedList#useInfiniteScroll} is configured
+ * [useInfiniteScroll]{@link module:alfresco/lists/AlfList#useInfiniteScroll} is configured
  * to be true and either the [InfiniteScrollService]{@link module:alfresco/services/InfiniteScrollService}
  * is included in the page or the list is placed in an 
  * [InfiniteScrollArea]{@link module:alfresco/layout/InfiniteScrollArea}.</p>
@@ -263,6 +263,11 @@ define(["dojo/_base/declare",
          this.alfSubscribe(this.sortFieldSelectionTopic, lang.hitch(this, this.onSortFieldSelection));
          this.alfSubscribe(this.pageSelectionTopic, lang.hitch(this, this.onPageChange));
          this.alfSubscribe(this.docsPerpageSelectionTopic, lang.hitch(this, this.onItemsPerPageChange));
+
+         if (this.loadMoreDataTopic)
+         {
+            this.alfSubscribe(this.loadMoreDataTopic, lang.hitch(this, this.onLoadMoreData));
+         }
       },
 
       /**
@@ -525,6 +530,40 @@ define(["dojo/_base/declare",
       },
 
       /**
+       * Flag to determine if infinite scroll events should continue to be processed after the list has reached the end
+       * according to any totalRecords / numberFound derived from load results. This behaviour is disabled by default
+       * for backwards compatibility with previous versions.
+       *
+       * @instance
+       * @type {boolean}
+       * @default false
+       * @since 1.0.102
+       */
+      allowInfiniteScrollAfterEndReached: false,
+
+      /**
+       * The topic this list subscribes to for generic requests to load more data when [useInfiniteScroll]{@link module:alfresco/lists/AlfList#useInfiniteScroll}
+       * has been set.
+       *
+       * @instance
+       * @type {string}
+       * @default
+       * @since 1.0.102
+       */
+      loadMoreDataTopic: null,
+
+      /**
+       * Internal flag to determine if the next load is intended to load the remainder of a result page that has been
+       * partially loaded previously.
+       *
+       * @instance
+       * @type {boolean}
+       * @default false
+       * @since 1.0.102
+       */
+      performPageRemainderLoad: false,
+
+      /**
        * Overrides the [inherited function]{@link module:alfresco/lists/AlfList#onScrollNearBottom} to request
        * more data when the user scrolls to the bottom of the browser page.
        *
@@ -532,19 +571,140 @@ define(["dojo/_base/declare",
        * @param payload
        */
       onScrollNearBottom: function alfresco_lists_AlfSortablePaginatedList__onScrollNearBottom(/*jshint unused:false*/payload) {
-         // Process Infinite Scroll, if enabled & if we've not hit the end of the results
+         this.onLoadNextPage({
+            forceLoad : this.allowInfiniteScrollAfterEndReached
+         }, true);
+      },
+
+      /**
+       * Handles requests to load more results if there is currently no request in progress and this instance
+       * has been configured to [useInfiniteScroll]{@link module:alfresco/lists/AlfList#useInfiniteScroll}.
+       * This operation will load as many entries as needed to fill a single page of entries - if a load request
+       * previously loaded less items than fit on a page the operation will load the remainder, otherwise it will
+       * load the next full page.
+       *
+       * @instance
+       * @param payload
+       * @since 1.0.102
+       */
+      onLoadMoreData: function alfresco_lists_AlfSortablePaginatedList__onLoadMoreData(payload, isScroll) {
+         // Process Infinite Scroll, if enabled and if we've not hit the end of the results or have been configured to
+         // always allow loading the next page
          // NOTE: The use of the currentData.totalRecords and currentData.numberFound is only retained to support
          //       AlfSearchList and faceted search in Share - generic infinite scroll should be done via the
          //       totalRecords, startIndex and currentPageSize values...
          // See AKU-1007 - we also want to prevent loading another page of data when a request is already in progress
-         if(!this.requestInProgress && 
-            this.useInfiniteScroll && 
-            ((this.totalRecords > (this.startIndex + this.currentPageSize)) ||
-            (this.currentData && (this.currentData.totalRecords < this.currentData.numberFound))))
+         if (this.useInfiniteScroll)
          {
-            this.currentPage++;
-            this.loadData();
+            if (!this.requestInProgress)
+            {
+               var knownToHaveMore = this.totalRecords > (this.startIndex + this.currentPageSize) ||
+                   (this.currentData && this.currentData.totalRecords < this.currentData.numberFound);
+               if (knownToHaveMore)
+               {
+                  // a regular load
+                  this.currentPage++;
+                  this.loadData();
+               }
+               else if (payload.forceLoad)
+               {
+                  // Check if we need to do a partial load or should just do a regular one
+                  // partial load = previously loaded only a fragment of a page and need to load rest
+                  // regular load = simply load next / reload current page
+                  // Note: fallback to this.currentData is for legacy compatibility as well - should not be necessary
+
+                  if (this.totalRecords === this.startIndex || (this.currentData && this.currentData.totalRecords === this.startIndex))
+                  {
+                     // we previously tried to load the currentPage and it was empty - try to load it again
+                     this.loadData();
+                  }
+                  else if (this.totalRecords % this.currentPageSize === 0  || (this.currentData && this.currentData.totalRecords % this.currentPageSize === 0))
+                  {
+                     // last page was a complete page - load the next
+                     this.currentPage++;
+                     this.loadData();
+                  }
+                  else
+                  {
+                     // last page was incomplete
+                     // do a partial load by reloading current and trimming result set in extractCurrentDataFromPayload
+                     this.performPageRemainderLoad = true;
+                     this.loadData();
+                  }
+               }
+               else if (isScroll)
+               {
+                  // report to scroll initiator that we've done processing (without a load)
+                  this.alfPublish(this.scrollReturn, {});
+               }
+            }
          }
+      },
+
+      /**
+       * Overrides [onDataLoadSuccess]{@link module:alfresco/lists/AlfList#onDataLoadSuccess}
+       * to reset [performPageRemainderLoad]{@link module:alfresco/lists/AlfSortablePaginatedList#performPageRemainderLoad}
+       * if another load request is pending.
+       *
+       * @instance
+       * @since 1.0.102
+       */
+      onDataLoadSuccess: function alfresco_lists_AlfSortablePaginatedList__onDataLoadSuccess(payload)
+      {
+         if (this.pendingLoadRequest === true)
+         {
+            // reset internal flag as we ignore this (successful) partial load 
+            this.performPageRemainderLoad = false;
+         }
+         this.inherited(arguments);
+      },
+
+      /**
+       * Overrides [extractCurrentDataFromPayload]{@link module:alfresco/lists/AlfList#extractCurrentDataFromPayload}
+       * to limit the list of items if [performPageRemainderLoad]{@link module:alfresco/lists/AlfSortablePaginatedList#performPageRemainderLoad}
+       * has been requested.
+       *
+       * @instance
+       * @since 1.0.102
+       */
+      extractCurrentDataFromPayload: function alfresco_lists_AlfSortablePaginatedList__extractCurrentDataFromPayload(payload)
+      {
+         var currentData = this.inherited(arguments), offset;
+
+         if (this.pendingLoadRequest === true)
+         {
+            if (currentData.items)
+            {
+               // last page load was partial - since we loaded entire page we need to remove the items already loaded
+               offset = this.totalRecords - this.startIndex;
+               if (this.currentData.items.length > offset)
+               {
+                  this.currentData.items = this.currentData.items.slice(offset);
+               }
+               else
+               {
+                  this.currentData.items = [];
+               }
+            }
+
+            this.pendingLoadRequest = false
+         }
+
+         return currentData;
+      },
+
+      /**
+       * Overrides [onDataLoadSuccess]{@link module:alfresco/lists/AlfList#onDataLoadSuccess}
+       * to reset [performPageRemainderLoad]{@link module:alfresco/lists/AlfSortablePaginatedList#performPageRemainderLoad}.
+       *
+       * @instance
+       * @since 1.0.102
+       */
+      onDataLoadFailure: function alfresco_lists_AlfSortablePaginatedList__onDataLoadFailure(payload)
+      {
+         // partial load failed - reset internal flag
+         this.performPageRemainderLoad = false;
+         this.inherited(arguments);
       },
 
       /**

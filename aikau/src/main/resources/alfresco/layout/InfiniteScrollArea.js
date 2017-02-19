@@ -159,7 +159,7 @@ define(["dojo/_base/declare",
        */
       onEventsResize: function alfresco_layout_InfiniteScrollArea__onEventsResize(payload) {
          if (payload.node === this.domNode.parentNode) {
-            this.alfPublish("ALF_EVENTS_SCROLL", {
+            this.alfPublish(this.eventsScrollTopic, {
                node: payload.node
             });
          }
